@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Input Data Screen -->
+      <div id="input-screen" class="screen {{ 'hidden' if prediction else '' }}">
+        <header class="app-header">
+          <h1 class="header-title">INPUT DATA</h1>
+        </header>
+
+        <main class="app-content">
+          <div class="section-label">CHOOSE LOCATION</div>
+          <div class="tabs">
+            <button type="button" class="tab-btn active" data-value="coords">Coordinates</button>
+            <button type="button" class="tab-btn" data-value="manual">Name</button>
+            <button type="button" class="tab-btn" data-value="auto">Current</button>
+          </div>
+
+          <form id="weather-form" action="/predict" method="post">
+            <input type="hidden" name="location-option" id="location-option" value="coords">
+            
+            <div id="coords-input-group" class="input-grid">
+              <div class="input-card">
+                <label>LATITUDE</label>
+                <input type="number" step="any" name="latitude" id="latitude" placeholder="0.0000" required />
+              </div>
+              <div class="input-card">
+                <label>LONGITUDE</label>
+                <input type="number" step="any" name="longitude" id="longitude" placeholder="0.0000" required />
+              </div>
+            </div>
+
+            <div id="manual-input-group" class="input-grid hidden">
+              <div class="input-card full-width">
+                <label>LOCATION NAME</label>
+                <div class="input-with-action">
+                  <input type="text" id="location-name" placeholder="Enter city name" />
+                  <button type="button" onclick="fetchCoordsFromLocation()" class="action-link">Get Coords</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-grid">
+              <div class="data-card">
+                <div class="card-icon temp-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
+                  </svg>
+                </div>
+                <div class="card-content">
+                  <label>TEMP</label>
+                  <div class="input-wrap">
+                    <input type="number" step="any" name="temperature_celsius" placeholder="24" required />
+                    <span class="unit">°C</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="data-card">
+                <div class="card-icon wind-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />
+                  </svg>
+                </div>
+                <div class="card-content">
+                  <label>WIND</label>
+                  <div class="input-wrap">
+                    <input type="number" step="any" name="wind_mph" placeholder="12" required />
+                    <span class="unit">km/h</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="data-card">
+                <div class="card-icon pres-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l4 2" />
+                  </svg>
+                </div>
+                <div class="card-content">
+                  <label>PRESSURE</label>
+                  <div class="input-wrap">
+                    <input type="number" step="any" name="pressure_mb" placeholder="1012" required />
+                    <span class="unit">hPa</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="data-card">
+                <div class="card-icon hum-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                  </svg>
+                </div>
+                <div class="card-content">
+                  <label>HUMIDITY</label>
+                  <div class="input-wrap">
+                    <input type="number" step="any" name="humidity" placeholder="45" required />
+                    <span class="unit">%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="primary-btn">
+              Predict Forecast
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                <path d="M3 17l6-6 4 4 8-8" />
+                <path d="M17 7h4v4" />
+              </svg>
+            </button>
+          </form>
+        </main>
+      </div>
+
+      <!-- Forecast Result Screen -->
+      {% if prediction %}
+      <div id="forecast-screen" class="screen">
+        <header class="app-header">
+          <div></div> <!-- Spacer -->
+          <h1 class="header-title">FORECAST</h1>
+          <div></div> <!-- Spacer -->
+        </header>
+
+        <main class="app-content centered">
+          <div class="weather-visual">
+            <div class="weather-icon-large">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path class="sun" d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z" fill="#FFD700" />
+                <path class="cloud" d="M17.5 19c-3 0-5.5-2.5-5.5-5.5 0-2.3 1.4-4.2 3.4-5 0-.1 0-.3 0-.5 0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5c0 .2 0 .3 0 .5 2 1.3 3.4 3.5 3.4 6 0 3.8-3.1 7-7 7h-5.3z" fill="#4A90E2" />
+              </svg>
+            </div>
+            <div class="main-temp">{{ prediction.temperature }}°</div>
+            <div class="condition-text">{{ prediction.weather_condition }}</div>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-card">
+              <div class="stat-icon wind">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />
+                </svg>
+              </div>
+              <label>WIND</label>
+              <div class="stat-value">{{ prediction.wind_speed }} <small>km/h</small></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon hum">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                </svg>
+              </div>
+              <label>HUM</label>
+              <div class="stat-value">{{ prediction.humidity }} <small>%</small></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon pres">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 6v6l4 2" />
+                </svg>
+              </div>
+              <label>PRES</label>
+              <div class="stat-value">{{ prediction.pressure }} <small>hPa</small></div>
+            </div>
+          </div>
+
+          <div class="recommendation-card">
+            <p>Excellent conditions for outdoor activities. The mild breeze and clear sky make it a perfect day for a walk.</p>
+          </div>
+
+          <div class="button-group">
+            <button type="button" class="primary-btn secondary-style" onclick="showInputScreen()">
+              Back to Home
+            </button>
+            <form action="/download_report" method="post" class="flex-1">
+              {% for key, value in prediction.items() %}
+              <input type="hidden" name="{{ key }}" value="{{ value }}" />
+              {% endfor %}
+              <button type="submit" class="primary-btn">
+                Download Full Report
+              </button>
+            </form>
+          </div>
+        </main>
+      </div>
+      {% endif %}
+    </div>
+  </body>
+</html>
